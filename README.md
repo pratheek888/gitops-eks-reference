@@ -147,6 +147,8 @@ make all                 # every environment + terraform validate
   set `analysis.metricName` to the app's own RED metric (e.g. `http_requests_total` scraped by a ServiceMonitor).
 - **Guardrails in the project, not in people.** The `AppProject` blocks cluster-scoped resources and limits
   namespaces. Prod auto-sync is off and a deny window blocks changes from 19:00 to 09:00 IST.
+- **Secure by default.** Trivy blocks new HIGH/CRITICAL misconfigurations in CI, the EKS API is limited to
+  allow-listed CIDRs, and every accepted finding has a written reason in `.trivyignore`.
 - **Cost.** Defaults use Spot nodes and a single NAT gateway. Switch to `ON_DEMAND` and one NAT per AZ for real production.
 
 ## Roadmap

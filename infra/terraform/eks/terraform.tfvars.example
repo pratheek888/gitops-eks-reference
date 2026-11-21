@@ -1,6 +1,10 @@
 region              = "ap-south-1"
 cluster_name        = "gitops-reference"
 cluster_version     = "1.31"
+
+# Your public IP / VPN range, e.g. from: curl -s ifconfig.me
+cluster_endpoint_public_access_cidrs = ["203.0.113.10/32"]
+
 node_instance_types = ["t3.large"]
 node_capacity_type  = "SPOT"
 node_desired_size   = 3

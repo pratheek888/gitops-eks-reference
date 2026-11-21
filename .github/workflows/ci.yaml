@@ -120,6 +120,7 @@ jobs:
           scan-type: config
           scan-ref: .
           severity: HIGH,CRITICAL
-          # Report only; flip to "1" to make HIGH/CRITICAL findings block merges.
-          exit-code: "0"
+          # New HIGH/CRITICAL findings fail the build; accepted ones are justified in .trivyignore.
+          exit-code: "1"
+          trivyignores: .trivyignore
           format: table

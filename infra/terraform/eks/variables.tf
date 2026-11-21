@@ -16,6 +16,16 @@ variable "cluster_version" {
   default     = "1.31"
 }
 
+variable "cluster_endpoint_public_access_cidrs" {
+  description = "CIDRs allowed to reach the public EKS API endpoint (your office/VPN egress IPs or CI runners)"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.cluster_endpoint_public_access_cidrs) > 0 && !contains(var.cluster_endpoint_public_access_cidrs, "0.0.0.0/0")
+    error_message = "Set at least one CIDR and do not open the API endpoint to 0.0.0.0/0."
+  }
+}
+
 variable "vpc_cidr" {
   description = "VPC CIDR block"
   type        = string

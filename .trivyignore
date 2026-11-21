@@ -1,0 +1,12 @@
+# Accepted findings. Each entry needs a reason and is reviewed with the code.
+
+# AWS-0040: the public EKS API endpoint stays enabled so engineers and CI can run kubectl/terraform
+# without a VPN. It's restricted to var.cluster_endpoint_public_access_cidrs (0.0.0.0/0 is rejected by
+# variable validation), and private endpoint access is also enabled for in-VPC traffic.
+AVD-AWS-0040
+AWS-0040
+
+# AWS-0104: the node security group from terraform-aws-modules/eks allows all egress so nodes can pull
+# images, reach AWS APIs and call external services. Restrict with VPC endpoints + egress proxy if needed.
+AVD-AWS-0104
+AWS-0104
