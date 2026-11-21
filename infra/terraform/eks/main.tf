@@ -17,7 +17,7 @@ locals {
 # ---------------------------------------------------------------------------
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.13"
+  version = "~> 6.8"
 
   name = "${var.cluster_name}-vpc"
   cidr = var.vpc_cidr
@@ -43,7 +43,7 @@ module "vpc" {
 # ---------------------------------------------------------------------------
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.24"
+  version = "~> 21.30"
 
   cluster_name    = var.cluster_name
   cluster_version = var.cluster_version
