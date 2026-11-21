@@ -1,0 +1,25 @@
+# App-of-apps: the only manifest applied by hand (or by Terraform).
+# Everything else in /argocd is reconciled from Git by this Application.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/pratheek888/gitops-eks-reference.git
+    targetRevision: main
+    path: argocd
+    directory:
+      recurse: true
+      exclude: "bootstrap/*"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

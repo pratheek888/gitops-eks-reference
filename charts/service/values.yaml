@@ -1,0 +1,116 @@
+# Default values for a single microservice.
+# Environment-specific overrides live in /environments/<env>/values.yaml.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: argoproj/rollouts-demo
+  tag: blue
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+# Ignored when autoscaling.enabled is true.
+replicaCount: 2
+revisionHistoryLimit: 3
+
+containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 80
+
+serviceAccount:
+  create: true
+  # IRSA: set to an IAM role ARN to give the pod scoped AWS permissions.
+  roleArn: ""
+
+podAnnotations: {}
+podLabels: {}
+
+env: []
+#  - name: LOG_LEVEL
+#    value: info
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+probes:
+  path: /
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+topologySpread:
+  enabled: true
+
+ingress:
+  enabled: false
+  # nginx | alb
+  className: nginx
+  host: ""
+  path: /
+  annotations: {}
+  tls: []
+
+# --------------------------------------------------------------------
+# Progressive delivery (Argo Rollouts)
+# --------------------------------------------------------------------
+strategy:
+  # canary | blueGreen
+  type: canary
+
+  canary:
+    # none | nginx | alb  (traffic shaping needs ingress.enabled=true)
+    trafficRouting: none
+    steps:
+      - setWeight: 20
+      - pause: { duration: 2m }
+      - setWeight: 50
+      - pause: { duration: 2m }
+      - setWeight: 80
+      - pause: { duration: 1m }
+
+  blueGreen:
+    autoPromotionEnabled: false
+    scaleDownDelaySeconds: 60
+
+# Automated analysis: roll back if the HTTP success rate drops.
+analysis:
+  enabled: false
+  prometheusAddress: http://prometheus-prometheus.monitoring.svc.cluster.local:9090
+  # Request-count metric. Default comes from ingress-nginx; set http_requests_total
+  # (or similar) when the app exposes its own RED metrics, e.g. behind an ALB.
+  metricName: nginx_ingress_controller_requests
+  successRate: 0.95
+  interval: 1m
+  failureLimit: 2
+  # PromQL selector used to match this service's request metrics.
+  metricSelector: ""

@@ -1,0 +1,25 @@
+{{- if .Values.analysis.enabled -}}
+{{- $selector := .Values.analysis.metricSelector | default "service=\"{{args.service-name}}\"" -}}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "service.fullname" . }}-success-rate
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: success-rate
+      interval: {{ .Values.analysis.interval }}
+      failureLimit: {{ .Values.analysis.failureLimit }}
+      # Empty result (no traffic yet) counts as success instead of failing the rollout.
+      successCondition: len(result) == 0 || result[0] >= {{ .Values.analysis.successRate }}
+      provider:
+        prometheus:
+          address: {{ .Values.analysis.prometheusAddress }}
+          query: |
+            sum(rate({{ .Values.analysis.metricName }}{ {{- $selector }},status!~"5.."}[2m]))
+            /
+            sum(rate({{ .Values.analysis.metricName }}{ {{- $selector }}}[2m]))
+{{- end }}

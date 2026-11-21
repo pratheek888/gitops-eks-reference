@@ -1,0 +1,124 @@
+{{- $fullname := include "service.fullname" . -}}
+{{- $routing := .Values.strategy.canary.trafficRouting -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      {{- include "service.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "service.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "service.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "service.selectorLabels" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: {{ include "service.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          {{- with .Values.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ add .Values.probes.initialDelaySeconds 10 }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+  strategy:
+    {{- if eq .Values.strategy.type "blueGreen" }}
+    blueGreen:
+      activeService: {{ $fullname }}
+      previewService: {{ $fullname }}-preview
+      autoPromotionEnabled: {{ .Values.strategy.blueGreen.autoPromotionEnabled }}
+      scaleDownDelaySeconds: {{ .Values.strategy.blueGreen.scaleDownDelaySeconds }}
+      {{- if .Values.analysis.enabled }}
+      prePromotionAnalysis:
+        templates:
+          - templateName: {{ $fullname }}-success-rate
+        args:
+          - name: service-name
+            value: {{ $fullname }}-preview
+      {{- end }}
+    {{- else if eq .Values.strategy.type "canary" }}
+    canary:
+      stableService: {{ $fullname }}
+      canaryService: {{ $fullname }}-canary
+      {{- if and .Values.ingress.enabled (ne $routing "none") }}
+      trafficRouting:
+        {{- if eq $routing "nginx" }}
+        nginx:
+          stableIngress: {{ include "service.ingressName" . }}
+        {{- else if eq $routing "alb" }}
+        alb:
+          ingress: {{ include "service.ingressName" . }}
+          servicePort: {{ .Values.service.port }}
+        {{- else }}
+        {{- fail (printf "strategy.canary.trafficRouting must be none, nginx or alb (got %q)" $routing) }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.analysis.enabled }}
+      analysis:
+        templates:
+          - templateName: {{ $fullname }}-success-rate
+        startingStep: 1
+        args:
+          - name: service-name
+            value: {{ $fullname }}-canary
+      {{- end }}
+      steps:
+        {{- toYaml .Values.strategy.canary.steps | nindent 8 }}
+    {{- else }}
+    {{- fail (printf "strategy.type must be canary or blueGreen (got %q)" .Values.strategy.type) }}
+    {{- end }}

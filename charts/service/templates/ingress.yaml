@@ -1,0 +1,44 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullname := include "service.fullname" . -}}
+{{- $isAlb := eq .Values.ingress.className "alb" -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "service.ingressName" . }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+  {{- $annotations := .Values.ingress.annotations | default dict }}
+  {{- if $isAlb }}
+  {{- $annotations = merge (deepCopy $annotations) (dict "alb.ingress.kubernetes.io/scheme" "internet-facing" "alb.ingress.kubernetes.io/target-type" "ip") }}
+  {{- end }}
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - {{- with .Values.ingress.host }}
+      host: {{ . | quote }}
+      {{- end }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                {{- if and $isAlb (eq .Values.strategy.type "canary") (eq .Values.strategy.canary.trafficRouting "alb") }}
+                # Argo Rollouts rewrites this action annotation with stable/canary weights.
+                name: {{ $fullname }}
+                port:
+                  name: use-annotation
+                {{- else }}
+                name: {{ $fullname }}
+                port:
+                  number: {{ .Values.service.port }}
+                {{- end }}
+{{- end }}

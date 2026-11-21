@@ -1,0 +1,12 @@
+{{ include "service.fullname" . }} deployed as an Argo Rollout ({{ .Values.strategy.type }}).
+
+Watch the rollout:
+  kubectl argo rollouts get rollout {{ include "service.fullname" . }} -n {{ .Release.Namespace }} --watch
+{{- if eq .Values.strategy.type "blueGreen" }}
+
+Promote the preview (green) version once verified:
+  kubectl argo rollouts promote {{ include "service.fullname" . }} -n {{ .Release.Namespace }}
+{{- end }}
+
+Abort and roll back:
+  kubectl argo rollouts abort {{ include "service.fullname" . }} -n {{ .Release.Namespace }}

@@ -1,0 +1,60 @@
+# One ApplicationSet renders the umbrella chart once per environment.
+# Promotion between environments = a Git change to /environments/<env>/values.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-app
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: dev
+            cluster: https://kubernetes.default.svc
+            autoSync: true
+          - env: preprod
+            cluster: https://kubernetes.default.svc
+            autoSync: true
+          - env: prod
+            # Replace with the prod cluster registered in Argo CD (argocd cluster add).
+            cluster: https://kubernetes.default.svc
+            autoSync: false
+  template:
+    metadata:
+      name: "platform-app-{{ .env }}"
+      labels:
+        env: "{{ .env }}"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/pratheek888/gitops-eks-reference.git
+        targetRevision: main
+        path: charts/platform-app
+        helm:
+          releaseName: "platform-app-{{ .env }}"
+          valueFiles:
+            - values.yaml
+            - "../../environments/{{ .env }}/values.yaml"
+      destination:
+        server: "{{ .cluster }}"
+        namespace: "platform-{{ .env }}"
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 2m
+  templatePatch: |
+    {{- if .autoSync }}
+    spec:
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+    {{- end }}

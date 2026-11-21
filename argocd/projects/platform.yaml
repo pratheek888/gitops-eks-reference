@@ -1,0 +1,49 @@
+# AppProject: guardrails for what platform workloads may deploy and where.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  description: Platform microservices delivered through GitOps
+  sourceRepos:
+    - https://github.com/pratheek888/gitops-eks-reference.git
+  destinations:
+    - server: "*"
+      namespace: "platform-*"
+  # Workloads may not create cluster-scoped resources.
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: argoproj.io
+      kind: Rollout
+    - group: argoproj.io
+      kind: AnalysisTemplate
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+  roles:
+    - name: release-manager
+      description: Can sync and run rollout actions (promote / abort) in prod
+      policies:
+        - p, proj:platform:release-manager, applications, sync, platform/*, allow
+        - p, proj:platform:release-manager, applications, action/argoproj.io/Rollout/*, platform/*, allow
+      groups:
+        - release-managers
+  syncWindows:
+    # No automated prod changes 19:00-09:00 IST; manual syncs still allowed.
+    - kind: deny
+      schedule: "0 19 * * *"
+      duration: 14h
+      applications:
+        - "platform-app-prod"
+      timeZone: Asia/Kolkata
+      manualSync: true

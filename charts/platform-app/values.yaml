@@ -1,0 +1,34 @@
+# Base values shared by every environment.
+# Per-environment overrides: /environments/<env>/values.yaml
+
+api:
+  enabled: true
+  nameOverride: api
+  image:
+    repository: argoproj/rollouts-demo
+    tag: blue
+  containerPort: 8080
+  strategy:
+    type: canary
+
+web:
+  enabled: true
+  nameOverride: web
+  image:
+    repository: nginxinc/nginx-unprivileged
+    tag: "1.27-alpine"
+  containerPort: 8080
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    # nginx writes its pid/cache files, so the root FS stays writable here
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
+  strategy:
+    type: blueGreen

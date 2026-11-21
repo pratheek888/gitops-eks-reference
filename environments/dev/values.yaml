@@ -1,0 +1,22 @@
+# dev: fast feedback, minimal footprint, auto-promotion.
+api:
+  replicaCount: 1
+  podDisruptionBudget:
+    enabled: false
+  strategy:
+    type: canary
+    canary:
+      trafficRouting: none
+      steps:
+        - setWeight: 50
+        - pause: { duration: 30s }
+
+web:
+  replicaCount: 1
+  podDisruptionBudget:
+    enabled: false
+  strategy:
+    type: blueGreen
+    blueGreen:
+      autoPromotionEnabled: true
+      scaleDownDelaySeconds: 30

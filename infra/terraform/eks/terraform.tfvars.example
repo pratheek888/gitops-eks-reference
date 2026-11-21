@@ -1,0 +1,6 @@
+region              = "ap-south-1"
+cluster_name        = "gitops-reference"
+cluster_version     = "1.31"
+node_instance_types = ["t3.large"]
+node_capacity_type  = "SPOT"
+node_desired_size   = 3

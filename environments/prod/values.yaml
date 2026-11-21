@@ -1,0 +1,60 @@
+# prod: HPA, ALB traffic shifting, automated analysis, manual blue-green promotion.
+api:
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  resources:
+    requests:
+      cpu: 200m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  ingress:
+    enabled: true
+    className: alb
+    host: api.example.com
+  strategy:
+    type: canary
+    canary:
+      trafficRouting: alb
+      steps:
+        - setWeight: 10
+        - pause: { duration: 5m }
+        - setWeight: 25
+        - pause: { duration: 5m }
+        - setWeight: 50
+        - pause: { duration: 10m }
+        - setWeight: 75
+        - pause: { duration: 5m }
+  analysis:
+    enabled: true
+    successRate: 0.99
+    failureLimit: 1
+    # Traffic enters through the ALB, so analyse the app's own request metric.
+    metricName: http_requests_total
+
+web:
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  ingress:
+    enabled: true
+    className: alb
+    host: www.example.com
+  strategy:
+    type: blueGreen
+    blueGreen:
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 300
+  analysis:
+    enabled: true
+    successRate: 0.99
+    metricName: http_requests_total

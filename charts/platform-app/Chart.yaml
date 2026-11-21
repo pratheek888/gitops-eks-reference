@@ -1,0 +1,19 @@
+apiVersion: v2
+name: platform-app
+description: Umbrella chart that composes the platform's microservices from the generic service chart
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  # Each microservice reuses the same generic chart under its own alias,
+  # so every team gets the same deployment pattern (one chart, many services).
+  - name: service
+    alias: api
+    version: 0.1.0
+    repository: file://../service
+    condition: api.enabled
+  - name: service
+    alias: web
+    version: 0.1.0
+    repository: file://../service
+    condition: web.enabled

@@ -1,0 +1,29 @@
+# preprod: production-like rollout with metric analysis, smaller scale.
+api:
+  replicaCount: 2
+  ingress:
+    enabled: true
+    className: nginx
+    host: api.preprod.example.com
+  strategy:
+    type: canary
+    canary:
+      trafficRouting: nginx
+      steps:
+        - setWeight: 20
+        - pause: { duration: 2m }
+        - setWeight: 50
+        - pause: { duration: 2m }
+  analysis:
+    enabled: true
+
+web:
+  replicaCount: 2
+  ingress:
+    enabled: true
+    className: nginx
+    host: preprod.example.com
+  strategy:
+    type: blueGreen
+    blueGreen:
+      autoPromotionEnabled: false
