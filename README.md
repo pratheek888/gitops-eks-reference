@@ -1,6 +1,7 @@
 # gitops-eks-reference
 
 [![ci](https://github.com/pratheek888/gitops-eks-reference/actions/workflows/ci.yaml/badge.svg)](https://github.com/pratheek888/gitops-eks-reference/actions/workflows/ci.yaml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pratheek888/gitops-eks-reference/badge)](https://scorecard.dev/viewer/?uri=github.com/pratheek888/gitops-eks-reference)
 ![Argo CD](https://img.shields.io/badge/GitOps-Argo%20CD-EF7B4D?logo=argo&logoColor=white)
 ![Argo Rollouts](https://img.shields.io/badge/Progressive%20delivery-Argo%20Rollouts-EF7B4D?logo=argo&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-umbrella%20chart-0F1689?logo=helm&logoColor=white)
